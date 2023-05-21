@@ -1,6 +1,8 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <iostream>
+#include <filesystem>
 
 #include <opencv2/core/core.hpp>       // Basic OpenCV structures (cv::Mat)
 #include <opencv2/highgui/highgui.hpp> // Video write
@@ -8,19 +10,32 @@
 using namespace std;
 using namespace cv;
 
+namespace fs = std::filesystem;
+
 int main()
 {
     vector<Mat> images;
 
-    string imagesList[2] = {
-        "pic_1.png",
-        "pic_2.png"
-        // , "..."
-    };
+    vector<fs::path> files;
 
-    for (auto imageFilename : imagesList)
+    for (const auto &entry : fs::directory_iterator("data"))
     {
-        // string name = "data/pic_" + index + ".png";
+        // std::cout << entry.path() << std::endl;
+        if (entry.path().filename().string()[0] == '.')
+        {
+            continue;
+        }
+        files.push_back(entry.path());
+    }
+
+    std::sort(
+        files.begin(), files.end(), [](const auto &lhs, const auto &rhs)
+        { return (lhs.filename().string() <
+                  rhs.filename().string()); });
+
+    for (auto imageFilename : files)
+    {
+        // std::cout << imageFilename << std::endl;
         string name = imageFilename;
         Mat img = imread(name);
         if (img.empty())
