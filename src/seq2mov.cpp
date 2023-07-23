@@ -12,7 +12,8 @@ using namespace cv;
 
 namespace fs = std::filesystem;
 
-int extractNumber(const fs::path& path) {
+int extractNumber(const fs::path &path)
+{
     std::string filename = path.filename().string();
     size_t start = filename.find_first_of("0123456789");
     size_t end = filename.find_last_of("0123456789");
@@ -23,16 +24,59 @@ int extractNumber(const fs::path& path) {
     return std::stoi(filename.substr(start, end - start + 1));
 }
 
-int main(int argc, char* argv[])
+void printVerbose(const string &message, bool verbose)
+{
+    if (verbose)
+    {
+        cout << message << endl;
+    }
+}
+
+int main(int argc, char *argv[])
 {
 
     string pathArg = "data";
+    string videoFilename = "out.avi";
+    bool verbose = false;
+    int batchSize = 100;
 
     vector<Mat> images;
     vector<fs::path> files;
 
-   if (argc > 1) {
-        pathArg = argv[1]; 
+    // command-line arguments
+    unordered_map<string_view, string_view> arguments;
+
+    for (int i = 1; i < argc; ++i)
+    {
+        string_view arg = argv[i];
+        if (arg.starts_with("-"))
+        {
+            if (++i < argc)
+            {
+                arguments[arg] = argv[i];
+            }
+        }
+    }
+
+    // Check for specific arguments
+    if (arguments.count("-v"))
+    {
+        verbose = true;
+    }
+
+    if (arguments.count("-b"))
+    {
+        batchSize = stoi(arguments["-b"].data());
+    }
+
+    if (arguments.count("-o"))
+    {
+        videoFilename = arguments["-o"].data();
+    }
+
+    if (argc > 1)
+    {
+        pathArg = argv[1];
     }
 
     for (const auto &entry : fs::directory_iterator(pathArg))
@@ -48,20 +92,18 @@ int main(int argc, char* argv[])
         // }
     }
 
-
-    std::sort(files.begin(), files.end(), [](const auto& lhs, const auto& rhs) {
+    std::sort(files.begin(), files.end(), [](const auto &lhs, const auto &rhs)
+              {
         int lhsNumber = extractNumber(lhs);
         int rhsNumber = extractNumber(rhs);
         if (lhsNumber != rhsNumber) {
             return lhsNumber < rhsNumber;
         } else {
             return lhs.filename().string() < rhs.filename().string();
-        }
-    });
+        } });
 
     for (auto imageFilename : files)
     {
-        std::cout << imageFilename << std::endl;
         string name = imageFilename.string();
         Mat img = imread(name);
         if (img.empty())
@@ -70,29 +112,22 @@ int main(int argc, char* argv[])
             continue;
         }
         images.push_back(img);
+        printVerbose("Loaded image: " + name, verbose);
     }
 
     Size targetSize = Size(images[0].cols, images[0].rows);
     int targetFps = 30;
-    string videoFilename = "out.avi";
 
     // VideoWriter outputVideo;
     // outputVideo.open(videoFilename, -1, targetFps, S, true);
-    // VideoWriter outputVideo(videoFilename, cv::VideoWriter::fourcc('M','J','P','G'),2,S);
     VideoWriter outputVideo(videoFilename, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), targetFps, targetSize);
 
     if (!outputVideo.isOpened())
     {
-        cout << "Could not open the output video for write: " << endl;
+        cerr << "Could not open the output video for write: " << endl;
         return -1;
     }
 
-    for (int i = 0; i < images.size(); i++)
-    {
-        outputVideo << images[i];
-    }
-
-    const int batchSize = 100;
     // write frames in batches
     for (int i = 0; i < images.size(); i += batchSize)
     {
@@ -103,6 +138,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    cout << "Finished writing" << endl;
+    printVerbose("Finished writing", verbose);
     return 0;
 }
