@@ -92,6 +92,17 @@ int main(int argc, char* argv[])
         outputVideo << images[i];
     }
 
+    const int batchSize = 100;
+    // write frames in batches
+    for (int i = 0; i < images.size(); i += batchSize)
+    {
+        int endIdx = min(i + batchSize, static_cast<int>(images.size()));
+        for (int j = i; j < endIdx; j++)
+        {
+            outputVideo << images[j];
+        }
+    }
+
     cout << "Finished writing" << endl;
     return 0;
 }
