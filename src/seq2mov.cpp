@@ -12,13 +12,30 @@ using namespace cv;
 
 namespace fs = std::filesystem;
 
-int main()
-{
-    vector<Mat> images;
+int extractNumber(const fs::path& path) {
+    std::string filename = path.filename().string();
+    size_t start = filename.find_first_of("0123456789");
+    size_t end = filename.find_last_of("0123456789");
 
+    if (start == std::string::npos || end == std::string::npos)
+        return 0; // No numeric part found in the filename
+
+    return std::stoi(filename.substr(start, end - start + 1));
+}
+
+int main(int argc, char* argv[])
+{
+
+    string pathArg = "data";
+
+    vector<Mat> images;
     vector<fs::path> files;
 
-    for (const auto &entry : fs::directory_iterator("data"))
+   if (argc > 1) {
+        pathArg = argv[1]; 
+    }
+
+    for (const auto &entry : fs::directory_iterator(pathArg))
     {
         // std::cout << entry.path() << std::endl;
         if (entry.path().filename().string()[0] == '.')
@@ -26,17 +43,26 @@ int main()
             continue;
         }
         files.push_back(entry.path());
+        // if (files.size() >= 3600) {
+        //     break;
+        // }
     }
 
-    std::sort(
-        files.begin(), files.end(), [](const auto &lhs, const auto &rhs)
-        { return (lhs.filename().string() <
-                  rhs.filename().string()); });
+
+    std::sort(files.begin(), files.end(), [](const auto& lhs, const auto& rhs) {
+        int lhsNumber = extractNumber(lhs);
+        int rhsNumber = extractNumber(rhs);
+        if (lhsNumber != rhsNumber) {
+            return lhsNumber < rhsNumber;
+        } else {
+            return lhs.filename().string() < rhs.filename().string();
+        }
+    });
 
     for (auto imageFilename : files)
     {
-        // std::cout << imageFilename << std::endl;
-        string name = imageFilename;
+        std::cout << imageFilename << std::endl;
+        string name = imageFilename.string();
         Mat img = imread(name);
         if (img.empty())
         {
